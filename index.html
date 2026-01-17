@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Wolfenstein 3D</title>
+    <style>
+      body {
+        background: #222;
+        color: #fff;
+        font-family: monospace;
+        text-align: center;
+        padding: 0px;
+        margin: 0px;
+        overflow: hidden;
+      }
+      canvas {
+        border: none;
+        background: #fff;
+        display: none;
+        margin: 0;
+        padding: 0;
+      }
+      canvas:focus {
+        outline: none;
+      }
+
+      canvas:focus-visible {
+        outline: none;
+      }
+      #status {
+        font-size: 24px;
+        margin-bottom: 20px;
+        color: #ffcc00;
+      }
+      #log {
+        color: #aaa;
+        font-size: 14px;
+        white-space: pre;
+      }
+      .error {
+        color: #ff5555;
+        font-weight: bold;
+      }
+      #title {
+        margin-top: 50px;
+      }
+    </style>
+
+    <script type="module">
+      import escodegen from "https://cdn.jsdelivr.net/npm/escodegen@2.1.0/+esm";
+      window.escodegen = escodegen;
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.13.6/underscore-min.js"></script>
+    <script type="module">
+      import estraverse from "https://cdn.jsdelivr.net/npm/estraverse@5.3.0/+esm";
+      window.estraverse = estraverse;
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/esprima@4.0.1/dist/esprima.min.js"></script>
+  </head>
+  <body>
+    <h3 id="title">Khan Academy Local Environment</h3>
+    <div id="status">Checking Dependencies...</div>
+    <div id="log"></div>
+    <canvas id="output-canvas"></canvas>
+
+    <script>
+      var statusDiv = document.getElementById("status");
+      var logDiv = document.getElementById("log");
+      var attempts = 0;
+
+      function log(msg, isError) {
+        logDiv.innerHTML +=
+          (isError ? "<span class='error'>" : "") +
+          msg +
+          (isError ? "</span>" : "") +
+          "\n";
+        console.log(msg);
+      }
+
+      // --- 1. SHIM JSHINT ---
+      window.JSHINT = window.JSHINT || {
+        errors: [],
+        data: function () {
+          return {};
+        },
+      };
+
+      // --- 2. WAIT FOR LIBS ---
+      function checkLibs() {
+        var missing = [];
+        if (typeof window._ === "undefined") missing.push("Underscore.js");
+        if (typeof window.esprima === "undefined") missing.push("Esprima");
+        if (typeof window.escodegen === "undefined") missing.push("Escodegen"); // Added Check
+        if (typeof window.estraverse === "undefined")
+          missing.push("Estraverse");
+
+        if (missing.length === 0) {
+          log("Dependencies loaded successfully.");
+          loadLocalDeps();
+        } else {
+          attempts++;
+          if (attempts > 50) {
+            statusDiv.innerText = "Error: Network Timeout";
+            log(
+              "FAILED: Could not load libraries: " + missing.join(", "),
+              true
+            );
+            return;
+          }
+          statusDiv.innerText = "Waiting for libs (" + missing.length + ")...";
+          setTimeout(checkLibs, 100);
+        }
+      }
+
+      // --- 3. LOAD LOCAL DEPS ---
+      function loadLocalDeps() {
+        statusDiv.innerText = "Loading 'live-editor.output_pjs_deps.js'...";
+        var script = document.createElement("script");
+        script.src = "./live-editor.output_pjs_deps.js";
+        script.onload = function () {
+          log("PJS loaded.");
+          loadGameFile();
+        };
+        script.onerror = function () {
+          statusDiv.innerText = "Error: File Missing";
+          log("FAILED: Could not find 'live-editor.output_pjs_deps.js'", true);
+        };
+        document.body.appendChild(script);
+      }
+
+      // --- 4. FETCH GAME FILE ---
+      async function loadGameFile() {
+        try {
+          const response = await fetch("./images.js");
+          if (!response.ok) throw new Error("404: images.js not found");
+          var rawCode = (await response.text()) + "\n";
+
+          const response2 = await fetch("./episodes.js");
+          if (!response2.ok) throw new Error("404: episodes.js not found");
+          rawCode += (await response2.text()) + "\n";
+
+          const response3 = await fetch("./game.js");
+          if (!response3.ok) throw new Error("404: game.js not found");
+          rawCode += await response3.text();
+
+          // Quick parse check
+          try {
+            esprima.parse(rawCode);
+          } catch (parseError) {
+            log(
+              "SYNTAX ERROR in game.js line " +
+                parseError.lineNumber +
+                ": " +
+                parseError.description,
+              true
+            );
+            return;
+          }
+          log("Game file loaded.");
+          runGame(rawCode);
+        } catch (err) {
+          log(err.message, true);
+        }
+      }
+
+      // --- 5. SCOPE-AWARE TRANSPILER (FIXES THE "p.str" ERROR) ---
+      function rewriteContextVariables(envName, context) {
+        var scopes = [{}]; // Scope Stack
+
+        return {
+          enter: function (node, parent) {
+            // A. PUSH SCOPE for Functions
+            if (
+              node.type === "FunctionDeclaration" ||
+              node.type === "FunctionExpression"
+            ) {
+              var newScope = {};
+              node.params.forEach(function (param) {
+                if (param.type === "Identifier") newScope[param.name] = true;
+              });
+              scopes.push(newScope);
+            }
+
+            // B. ADD VARIABLES to Current Scope
+            if (
+              node.type === "VariableDeclarator" &&
+              node.id.type === "Identifier"
+            ) {
+              scopes[scopes.length - 1][node.id.name] = true;
+            }
+
+            // C. TRANSFORM IDENTIFIERS
+            if (node.type === "Identifier") {
+              // Ignore declarations and properties
+              if (parent.type === "VariableDeclarator" && parent.id === node)
+                return;
+              if (parent.type === "FunctionDeclaration" && parent.id === node)
+                return;
+              if (
+                parent.type === "MemberExpression" &&
+                parent.property === node &&
+                !parent.computed
+              )
+                return;
+              if (parent.type === "Property" && parent.key === node) return;
+              if (
+                (parent.type === "FunctionExpression" ||
+                  parent.type === "FunctionDeclaration") &&
+                parent.params.indexOf(node) !== -1
+              )
+                return;
+
+              // Check if variable is Local (in any parent scope)
+              for (var i = scopes.length - 1; i >= 0; i--) {
+                if (scopes[i].hasOwnProperty(node.name)) return; // It's local, don't touch
+              }
+
+              // Check if it's a Processing Global
+              if (context.hasOwnProperty(node.name)) {
+                return {
+                  type: "MemberExpression",
+                  computed: false,
+                  object: { type: "Identifier", name: envName },
+                  property: { type: "Identifier", name: node.name },
+                };
+              }
+            }
+          },
+          leave: function (node, parent) {
+            // POP SCOPE
+            if (
+              node.type === "FunctionDeclaration" ||
+              node.type === "FunctionExpression"
+            ) {
+              scopes.pop();
+            }
+          },
+        };
+      }
+
+      // --- 6. RUN GAME ---
+      function runGame(codeString) {
+        try {
+          var dummy = new Processing(
+            document.createElement("canvas"),
+            () => {}
+          );
+          var context = { Math: true };
+
+          // A. Build Context (Functions, Constants, and Variables)
+          for (var prop in dummy) {
+            if (prop.substring(0, 2) === "__" || prop.charAt(0) === "$")
+              continue;
+
+            if (typeof dummy[prop] === "function") {
+              context[prop] = true;
+            } else if (/^[A-Z0-9_]+$/.test(prop)) {
+              context[prop] = true;
+            } else if (
+              [
+                "width",
+                "height",
+                "mouseX",
+                "mouseY",
+                "pmouseX",
+                "pmouseY",
+                "key",
+                "keyCode",
+                "mouseButton",
+                "focused",
+                "frameCount",
+                "pixels",
+                "str",
+              ].indexOf(prop) > -1
+            ) {
+              context[prop] = true; // Explicitly add variables
+            }
+          }
+
+          // B. Add Lifecycle Functions (so "draw =" becomes "p.draw =")
+          [
+            "setup",
+            "draw",
+            "mouseClicked",
+            "mouseDragged",
+            "mouseMoved",
+            "mousePressed",
+            "mouseReleased",
+            "keyPressed",
+            "keyReleased",
+            "keyTyped",
+          ].forEach((name) => {
+            context[name] = true;
+          });
+
+          // C. Transpile
+          var ast = esprima.parse(codeString);
+          var visitor = rewriteContextVariables("p", context);
+          estraverse.replace(ast, visitor);
+
+          // D. Generate & Link
+          var linkerCode =
+            "\n\n" +
+            "if (typeof draw !== 'undefined') p.draw = draw; " +
+            "if (typeof setup !== 'undefined') p.setup = setup; " +
+            "if (typeof mousePressed !== 'undefined') p.mousePressed = mousePressed; " +
+            "if (typeof mouseReleased !== 'undefined') p.mouseReleased = mouseReleased; " +
+            "if (typeof keyPressed !== 'undefined') p.keyPressed = keyPressed; " +
+            "if (typeof keyReleased !== 'undefined') p.keyReleased = keyReleased; " +
+            "if (typeof keyTyped !== 'undefined') p.keyTyped = keyTyped; " +
+            "if (typeof mouseDragged !== 'undefined') p.mouseDragged = mouseDragged; " +
+            "if (typeof mouseMoved !== 'undefined') p.mouseMoved = mouseMoved; " +
+            "if (typeof mouseClicked !== 'undefined') p.mouseClicked = mouseClicked; ";
+
+          var optimizedCode =
+            'p.angleMode="degrees";\np.size(640, 400);\n' +
+            escodegen.generate(ast) +
+            linkerCode;
+          log("Code optimized.");
+
+          // E. Execute
+          var programFunc = new Function("p", optimizedCode);
+          var canvas = document.getElementById("output-canvas");
+          canvas.style.display = "block";
+          statusDiv.style.display = "none";
+          logDiv.style.display = "none";
+          document.getElementById("title").style.display = "none";
+
+          if (canvas.processingInstance) canvas.processingInstance.exit();
+
+          // Important: Pass the instance into the function!
+          var instance = new Processing(canvas, programFunc);
+          log("Processing instance started.");
+        } catch (e) {
+          statusDiv.style.display = "block";
+          statusDiv.innerText = "Runtime Error";
+          log(e.message, true);
+          console.error(e);
+        }
+      }
+
+      checkLibs();
+    </script>
+  </body>
+</html>
