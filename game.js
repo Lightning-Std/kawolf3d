@@ -78,7 +78,7 @@ var GAME_STATES = {
   DEATHCAM_3: 13,
 };
 
-var difficultyLevel = parseInt(window.prompt("Enter difficulty (0-3)", "3"));
+var difficultyLevel = parseInt*window.prompt("Enter difficulty (0-3)", "3"));
 
 var MOVE_SPEED = 0.003204345703125 * 1.41;
 var TURN_SPEED = 0.1;
