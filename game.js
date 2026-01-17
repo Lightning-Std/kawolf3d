@@ -46,11 +46,11 @@ var DEBUG_FPS = false;
 var DECORATION_CLIPPING_DISTANCE = 0.2;
 // }
 // Control Settings {
-var useMouse = window.prompt("Use mouse controls?", "y") === "y";
+var useMouse = true;
 var mouseSensitivity = 0.04;
 // }
 // Save Code {
-var saveCode = window.prompt("Enter save code:", "!*%©$# ! ! ! ! !");
+var saveCode = "!*%©$# ! ! ! ! !";
 //}
 // Constants {
 
@@ -78,7 +78,7 @@ var GAME_STATES = {
   DEATHCAM_3: 13,
 };
 
-var difficultyLevel = parseInt*window.prompt("Enter difficulty (0-3)", "3"));
+var difficultyLevel = DIFFICULTIES.I_AM_DEATH_INCARNATE;
 
 var MOVE_SPEED = 0.003204345703125 * 1.41;
 var TURN_SPEED = 0.1;
@@ -129,7 +129,7 @@ var SCHABBS_CODE = 207 + FLOOR_CODES;
 // }
 // Global {
 var currentLevel = 0;
-var currentEpisode = parseInt(window.prompt("Enter episode (0 or 1)", "0"));
+var currentEpisode = 0;
 var totalScore = 0;
 
 var totalSeconds = 0;
