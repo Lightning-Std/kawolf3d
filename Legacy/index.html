@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
   <head>
     <title>Wolfenstein 3D</title>
@@ -102,7 +102,7 @@
             statusDiv.innerText = "Error: Network Timeout";
             log(
               "FAILED: Could not load libraries: " + missing.join(", "),
-              true,
+              true
             );
             return;
           }
@@ -146,13 +146,12 @@
           try {
             esprima.parse(rawCode);
           } catch (parseError) {
-            console.log(rawCode);
             log(
               "SYNTAX ERROR in game.js line " +
                 parseError.lineNumber +
                 ": " +
                 parseError.description,
-              true,
+              true
             );
             return;
           }
@@ -243,7 +242,7 @@
         try {
           var dummy = new Processing(
             document.createElement("canvas"),
-            () => {},
+            () => {}
           );
           var context = { Math: true };
 

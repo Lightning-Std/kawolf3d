@@ -46,15 +46,13 @@ var DEBUG_FPS = false;
 var DECORATION_CLIPPING_DISTANCE = 0.2;
 // }
 // Control Settings {
-var useMouse = false;
+var useMouse = true;
 var mouseSensitivity = 0.04;
 // }
 // Save Code {
 var saveCode = "!*%©$# ! ! ! ! !";
 //}
 // Constants {
-
-var IMAGE_PER_RENDER_FRAME = 64 * 64 * 5;
 
 var DIFFICULTIES = {
   CAN_I_PLAY_TOO_DADDY: 0,
@@ -78,16 +76,6 @@ var GAME_STATES = {
   DEATHCAM_1: 11,
   DEATHCAM_2: 12,
   DEATHCAM_3: 13,
-  PAUSE: 14,
-};
-
-var MENU_STATES = {
-  INTRO: 0,
-  MAIN: 1,
-  EPISODE: 2,
-  DIFFICULTY: 3,
-  START_GAME: 4,
-  BACK_TO_GAME: 5,
 };
 
 var difficultyLevel = DIFFICULTIES.CAN_I_PLAY_TOO_DADDY;
@@ -412,7 +400,7 @@ var sliced = [];
 var currentImage = 0;
 var finishedRendering = false;
 
-function renderTexture(imageData, imageScale, r, w) {
+function renderTexture(imageData, imageScale) {
   background(0, 0, 0, 0);
   imageScale = imageScale || 1;
   cachedTextures.push([]);
@@ -423,11 +411,6 @@ function renderTexture(imageData, imageScale, r, w) {
     for (var x = 0; x < imageWidth; x++) {
       var index = y + x * imageHeight + 1;
       var fillColor = pallette[imageDataArray[index]];
-      if (r) {
-        if (fillColor === parseInt(r)) {
-          fillColor = parseInt(w);
-        }
-      }
       noStroke();
       if (fillColor === undefined) {
         println(currentImage);
@@ -453,43 +436,21 @@ function renderTexture(imageData, imageScale, r, w) {
   //     slices.push(get(x * imageScale, 0, imageScale, 64 * imageScale));
   // }
   // sliced.push(slices);
-  return imageWidth * imageHeight;
 }
 function initializeTextures(imageScale) {
   if (finishedRendering) {
     return;
   }
-
-  var imageAmount = 0;
-  do {
-    if (rawImages[currentImage].startsWith(" R,")) {
-      var data = rawImages[currentImage].split(",");
-      imageAmount += renderTexture(
-        rawImages[currentImage - parseInt(data[1])],
-        imageScale,
-        data[2],
-        data[3]
-      );
-    } else {
-      imageAmount += renderTexture(rawImages[currentImage], imageScale);
-    }
-    currentImage++;
-    if (currentImage === rawImages.length) {
-      finishedRendering = true;
-      break;
-    }
-  } while (
-    imageAmount < IMAGE_PER_RENDER_FRAME &&
-    currentImage < rawImages.length
-  );
-  background(0, 0, 0, 0);
-  fill(0, 255, 0);
-  rect(0, 190, 640 * (currentImage / rawImages.length), 20);
+  renderTexture(rawImages[currentImage], imageScale);
+  currentImage++;
+  if (currentImage === rawImages.length) {
+    finishedRendering = true;
+  }
   fill(0, 0, 0);
   text(
     "Loading: " + floor((currentImage / rawImages.length) * 100) + "%",
-    width / 2 - 32,
-    height / 2 + 4
+    width / 2,
+    height / 2,
   );
 }
 // }
@@ -557,13 +518,6 @@ frameRate(TARGET_FPS);
 // Fonts {
 var fonts = [];
 fonts.push("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ:%!'");
-fonts.push(
-  "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_\`abcdefghijklmnopqrstuvwxyz{|}~"
-);
-fonts.push(fonts[fonts.length - 1]);
-fonts.push(fonts[fonts.length - 1]);
-fonts.push(fonts[fonts.length - 1]);
-fonts.push(fonts[fonts.length - 1]);
 
 var charWidths = [
   {
@@ -573,204 +527,34 @@ var charWidths = [
       "!": 8,
       "'": 8,
     },
-    add: 0,
-  },
-  {
-    def: 22,
-    ex: {
-      1: 14,
-      "!": 10,
-      '"': 18,
-      "%": 26,
-      "&": 28,
-      "'": 10,
-      "(": 14,
-      ")": 14,
-      "*": 26,
-      ",": 12,
-      "-": 18,
-      ".": 10,
-      "/": 26,
-      ":": 10,
-      ";": 10,
-      "<": 18,
-      "=": 18,
-      ">": 18,
-      I: 10,
-      K: 24,
-      M: 26,
-      W: 26,
-      "[": 14,
-      "\\": 26,
-      "]": 14,
-      "^": 26,
-      _: 18,
-      "`": 12,
-      f: 18,
-      i: 12,
-      j: 14,
-      l: 10,
-      m: 26,
-      w: 26,
-      "{": 18,
-      "|": 10,
-      "}": 18,
-      "~": 30,
-    },
-    add: -2,
-  },
-  {
-    def: 22,
-    ex: {
-      0: 18,
-      1: 12,
-      2: 16,
-      3: 16,
-      4: 18,
-      5: 16,
-      6: 16,
-      7: 16,
-      8: 16,
-      9: 16,
-      "!": 8,
-      '"': 14,
-      "#": 18,
-      $: 16,
-      "%": 18,
-      "&": 18,
-      "'": 10,
-      "(": 12,
-      ")": 12,
-      "*": 20,
-      "+": 16,
-      ",": 12,
-      "-": 16,
-      ".": 8,
-      "/": 18,
-      ":": 8,
-      ";": 10,
-      "<": 14,
-      "=": 16,
-      ">": 16,
-      "?": 16,
-      "@": 18,
-      A: 16,
-      B: 16,
-      C: 16,
-      D: 16,
-      E: 16,
-      F: 16,
-      G: 16,
-      H: 16,
-      I: 12,
-      J: 16,
-      K: 18,
-      L: 16,
-      M: 18,
-      N: 18,
-      O: 16,
-      P: 16,
-      Q: 16,
-      R: 16,
-      S: 16,
-      T: 16,
-      U: 16,
-      V: 16,
-      W: 18,
-      X: 18,
-      Y: 16,
-      Z: 18,
-      "[": 12,
-      "\\": 18,
-      "]": 12,
-      "^": 16,
-      _: 20,
-      "`": 10,
-      a: 16,
-      b: 16,
-      c: 16,
-      d: 16,
-      e: 16,
-      f: 16,
-      g: 16,
-      h: 16,
-      i: 8,
-      j: 14,
-      k: 16,
-      l: 8,
-      m: 24,
-      n: 16,
-      o: 16,
-      p: 16,
-      q: 16,
-      r: 16,
-      s: 16,
-      t: 16,
-      u: 16,
-      v: 16,
-      w: 24,
-      x: 18,
-      y: 16,
-      z: 16,
-      "{": 16,
-      "|": 8,
-      "}": 16,
-      "~": 18,
-    },
-    add: -2,
   },
 ];
-charWidths.splice(2, 0, charWidths[1]);
-charWidths.splice(2, 0, charWidths[1]);
-charWidths.splice(2, 0, charWidths[1]);
 
-function displayText(x, y, message, fontIndex, s) {
+function displayText(x, y, message, fontIndex) {
   var font = fonts[fontIndex];
-  var line = 0;
   var tempX = x;
-  if (!s) {
-    s = 1;
-  }
   imageMode(CORNER);
-
   for (var i = 0; i < message.length; i++) {
     if (message[i] === " ") {
-      tempX +=
-        ((charWidths[fontIndex].def + charWidths[fontIndex].add) * 2 * s) /
-        INV_SCALE;
-      continue;
-    }
-    if (message[i] === "\\") {
-      continue;
-    }
-    if (message[i] === "\n") {
-      tempX = x;
-      line++;
+      tempX += (charWidths[fontIndex].def * 2) / INV_SCALE;
       continue;
     }
     var charIndex = font.indexOf(message[i]);
     if (charIndex === -1) {
       println("Invalid message character: " + message[i]);
-      tempX +=
-        ((charWidths[fontIndex].def + charWidths[fontIndex].add) * 4 * s) /
-        INV_SCALE;
+      tempX += (charWidths[fontIndex].def * 4) / INV_SCALE;
       continue;
     }
-    image(
-      renders[fontOffsets[fontIndex] + charIndex],
-      tempX,
-      y + (line * renders[fontOffsets[fontIndex] + charIndex].height) / 2,
-      renders[fontOffsets[fontIndex] + charIndex].width * s,
-      renders[fontOffsets[fontIndex] + charIndex].height * s
-    );
+
+    image(renders[fontOffsets[fontIndex] + charIndex], tempX, y);
 
     var charWidth = charWidths[fontIndex].ex.hasOwnProperty(message[i])
       ? charWidths[fontIndex].ex[message[i]]
       : charWidths[fontIndex].def;
-    tempX += ((charWidth + charWidths[fontIndex].add) * 4 * s) / INV_SCALE;
+    tempX += (charWidth * 4) / INV_SCALE;
   }
+
   imageMode(CENTER);
-  return tempX;
 }
 // }
 // Input {
@@ -822,20 +606,6 @@ keyReleased = function () {
     inputKeys.shift = false;
   }
 };
-
-scopeOut("document").addEventListener("keydown", function (e) {
-  if (e.key === "Escape") {
-    inputKeys.escape = true;
-    inputKeysJustDown.escape = true;
-  }
-});
-
-scopeOut("document").addEventListener("keyup", function (e) {
-  if (e.key === "Escape") {
-    inputKeys.escape = false;
-  }
-});
-
 // }
 // Delta Time {
 var lastTimestamp = millis();
@@ -873,7 +643,7 @@ function displayNumber(num, col) {
     16 * col + 6,
     height - (hudHeight * INV_SCALE) / 2 + 8,
     16,
-    32
+    32,
   );
 }
 
@@ -905,7 +675,7 @@ function displayHUD(scene) {
     width / 2,
     height - (hudHeight * INV_SCALE) / 2,
     640,
-    80
+    80,
   );
 
   displayStat(scene.player.ammo, 28);
@@ -923,7 +693,7 @@ function displayHUD(scene) {
     560,
     height - (hudHeight * INV_SCALE) / 2,
     96,
-    48
+    48,
   );
 
   var frame =
@@ -944,7 +714,7 @@ function displayHUD(scene) {
       488,
       height - (hudHeight * INV_SCALE) / 2 - 16,
       16,
-      32
+      32,
     );
   } else {
     image(
@@ -952,7 +722,7 @@ function displayHUD(scene) {
       488,
       height - (hudHeight * INV_SCALE) / 2 - 16,
       16,
-      32
+      32,
     );
   }
 
@@ -962,7 +732,7 @@ function displayHUD(scene) {
       488,
       height - (hudHeight * INV_SCALE) / 2 + 16,
       16,
-      32
+      32,
     );
   } else {
     image(
@@ -970,7 +740,7 @@ function displayHUD(scene) {
       488,
       height - (hudHeight * INV_SCALE) / 2 + 16,
       16,
-      32
+      32,
     );
   }
 
@@ -1641,7 +1411,7 @@ function raycast(scene) {
           pixels.data[pixelIndex + 3] = 255;
         } else {
           var textureY = floor(
-            ((y - drawStartY) * 64) / (drawEndY - drawStartY)
+            ((y - drawStartY) * 64) / (drawEndY - drawStartY),
           );
           var pixelColor = texture[textureX + textureY * 64];
           pixels.data[pixelIndex] = (pixelColor >> 16) & 0xff;
@@ -1687,7 +1457,7 @@ function spawnDecorations(scene) {
         scene.level.worldMap[x][y] <= totalTiles + FLOOR_CODES
       ) {
         decorations.push(
-          new Decoration(scene.level.worldMap[x][y], x + 0.5, y + 0.5)
+          new Decoration(scene.level.worldMap[x][y], x + 0.5, y + 0.5),
         );
       }
       if (
@@ -1771,7 +1541,7 @@ function renderDecorations(scene) {
       (playerForwardY * decoration.dx - playerForwardX * decoration.dy);
 
     var spriteScreenX = floor(
-      (bufferWidth / 2) * (1 + transformX / transformY)
+      (bufferWidth / 2) * (1 + transformX / transformY),
     );
     decoration.screenX = spriteScreenX;
     if (spriteScreenX < -64 || spriteScreenX > bufferWidth + 64) {
@@ -1793,7 +1563,7 @@ function renderDecorations(scene) {
         var texture = decoration.getTexture();
         for (var y = drawStartY; y < drawEndYClamped; y++) {
           var textureY = floor(
-            ((y - drawStartY) * 64) / (drawEndY - drawStartY)
+            ((y - drawStartY) * 64) / (drawEndY - drawStartY),
           );
 
           var pixelColor = texture[textureX + textureY * 64];
@@ -1861,7 +1631,7 @@ Enemy.prototype.move = function (scene, move) {
   this.pos.y += move * sign0(this.forward.y);
   this.distanceToMove = max(
     abs(this.pos.x - this.targetPosition.x),
-    abs(this.pos.y - this.targetPosition.y)
+    abs(this.pos.y - this.targetPosition.y),
   );
 };
 Enemy.prototype.setTargetPosition = function (scene, x, y) {
@@ -1872,7 +1642,7 @@ Enemy.prototype.setTargetPosition = function (scene, x, y) {
   scene.enemyGrid[floor(x)][floor(y)] = this;
   this.distanceToMove = max(
     abs(this.pos.x - this.targetPosition.x),
-    abs(this.pos.y - this.targetPosition.y)
+    abs(this.pos.y - this.targetPosition.y),
   );
 };
 Enemy.prototype.tryWalk = function (scene) {
@@ -1918,7 +1688,7 @@ Enemy.prototype.update = function (scene) {
   var angleToPlayer = wrap(
     directionToPlayer.heading() - this.forward.heading(),
     0,
-    360
+    360,
   );
   this.canSeePlayer =
     (angleToPlayer < 90 || angleToPlayer > 270 || this.id > 4) &&
@@ -2566,7 +2336,7 @@ Enemy.prototype.schabbsThrow = function (scene) {
     angle.x,
     angle.y,
     enemyDefinitions[this.id + 1],
-    "needle1"
+    "needle1",
   );
   scene.decorations.push(needle);
 };
@@ -2705,7 +2475,7 @@ Enemy.prototype.clearGridSpace = function (scene) {
     var pickup = new Decoration(
       dropItemId,
       floor(this.pos.x) + 0.5,
-      floor(this.pos.y) + 0.5
+      floor(this.pos.y) + 0.5,
     );
     scene.decorations.push(pickup);
     scene.pickupGrid[itemPosX][itemPosY].push(pickup);
@@ -4175,7 +3945,7 @@ function spawnEnemies(scene) {
           0,
           0,
           enemyDefinitions[0],
-          "die4"
+          "die4",
         );
         enemy.health = 0;
         dead++;
@@ -4249,8 +4019,8 @@ function spawnEnemies(scene) {
               enemyForwardX,
               enemyForwardY,
               enemyDefinitions[enemyId],
-              enemyFrame
-            )
+              enemyFrame,
+            ),
           );
         }
       }
@@ -4456,7 +4226,7 @@ Player.prototype.handleWin = function (scene) {
       0,
       -1,
       enemyDefinitions[6],
-      "run1"
+      "run1",
     );
     bj.targetY = bj.pos.y - 4;
     scene.decorations.push(bj);
@@ -4780,7 +4550,7 @@ Player.prototype.displayWeapon = function () {
     width / 2,
     height - hudHeight * INV_SCALE - 128,
     256,
-    256
+    256,
   );
 };
 Player.prototype.damage = function (damage, attacker, scene) {
@@ -4864,15 +4634,16 @@ function decodeLevel(levelData) {
 }
 // }
 
-// Game Scene {
+// Scene {
 var currentScene = null;
 
-function GameScene(episode, levelNumber) {
+function Scene(episode, levelNumber) {
   this.episode = episodes[episode];
   this.levelData = this.episode.levels[levelNumber];
   this.levelNumber = levelNumber;
   this.initialized = false;
-  this.gamestate = GAME_STATES.GET_PSYCHED;
+  this.gamestate =
+    levelNumber === 0 ? GAME_STATES.TITLE : GAME_STATES.GET_PSYCHED;
   this.startTime = -1;
   this.enemyCount = 0;
   this.secretCount = 0;
@@ -4880,7 +4651,7 @@ function GameScene(episode, levelNumber) {
   this.fadeColor = [0, 0, 0, 255];
 }
 
-GameScene.prototype.init = function () {
+Scene.prototype.init = function () {
   this.level = decodeLevel(this.levelData);
 
   spawnPlayer(this);
@@ -4908,7 +4679,7 @@ GameScene.prototype.init = function () {
   this.fadingIn = true;
 };
 
-GameScene.prototype.reset = function (lives) {
+Scene.prototype.reset = function (lives) {
   this.level = decodeLevel(this.levelData);
   this.startTime = millis();
   fading = false;
@@ -4934,22 +4705,22 @@ GameScene.prototype.reset = function (lives) {
   setupEnemyGrid(this);
 };
 
-GameScene.prototype.fade = function (amount) {
+Scene.prototype.fade = function (amount) {
   this.fadeColor[3] = constrain(this.fadeColor[3] + amount * delta, 0, 255);
 };
 
-GameScene.prototype.renderFade = function () {
+Scene.prototype.renderFade = function () {
   fill(
     this.fadeColor[0],
     this.fadeColor[1],
     this.fadeColor[2],
-    this.fadeColor[3]
+    this.fadeColor[3],
   );
   rect(0, 0, width, height);
 };
 
 var screenRender;
-GameScene.prototype.draw = function () {
+Scene.prototype.draw = function () {
   switch (this.gamestate) {
     case GAME_STATES.GET_PSYCHED: // {
       background(0, 64, 64);
@@ -4964,11 +4735,7 @@ GameScene.prototype.draw = function () {
       }
       this.renderFade();
       if (this.startTime === -1) {
-        if (this.fadeColor[0] > 0) {
-          this.fadeColor[0] = constrain(this.fadeColor[0] - 3 * delta, 0, 255);
-        } else {
-          this.fade(-1);
-        }
+        this.fade(-1);
         if (this.fadeColor[3] === 0) {
           this.startTime = millis();
         }
@@ -4987,11 +4754,7 @@ GameScene.prototype.draw = function () {
       renderFrameBuffer(fizzlePixels);
       displayHUD(this);
       this.renderFade();
-      if (this.fadeColor[0] > 0) {
-        this.fadeColor[0] = constrain(this.fadeColor[0] - 3 * delta, 0, 255);
-      } else {
-        this.fade(-1);
-      }
+      this.fade(-1);
       if (this.fadeColor[3] === 0) {
         this.gamestate = GAME_STATES.PLAY;
         this.startTime = millis();
@@ -5030,7 +4793,7 @@ GameScene.prototype.draw = function () {
       var targetAngle =
         -atan2(
           this.player.pos.x - this.player.killedBy.pos.x,
-          this.player.pos.y - this.player.killedBy.pos.y
+          this.player.pos.y - this.player.killedBy.pos.y,
         ) - 90;
       var turn = targetAngle - this.player.angle;
       if (turn > 180) {
@@ -5094,17 +4857,17 @@ GameScene.prototype.draw = function () {
 
           if (this.player.floor !== 10) {
             this.killRatio = floor(
-              (this.player.killCount / this.enemyCount) * 100
+              (this.player.killCount / this.enemyCount) * 100,
             );
             this.killRatioTemp = 0;
 
             this.secretRatio = floor(
-              (this.player.secretCount / this.secretCount) * 100
+              (this.player.secretCount / this.secretCount) * 100,
             );
             this.secretRatioTemp = 0;
 
             this.treasureRatio = floor(
-              (this.player.treasure / this.treasureCount) * 100
+              (this.player.treasure / this.treasureCount) * 100,
             );
             this.treasureRatioTemp = 0;
 
@@ -5295,7 +5058,7 @@ GameScene.prototype.draw = function () {
           268,
           176,
           "  PAR " + this.episode.parTimes[this.player.floor - 1][1],
-          0
+          0,
         );
         displayText(
           32,
@@ -5307,7 +5070,7 @@ GameScene.prototype.draw = function () {
               .split("-")
               .join("  ") +
             " %",
-          0
+          0,
         );
         displayText(
           32,
@@ -5319,7 +5082,7 @@ GameScene.prototype.draw = function () {
               .split("-")
               .join("  ") +
             " %",
-          0
+          0,
         );
         displayText(
           32,
@@ -5331,7 +5094,7 @@ GameScene.prototype.draw = function () {
               .split("-")
               .join("  ") +
             " %",
-          0
+          0,
         );
       }
       imageMode(CORNER);
@@ -5339,109 +5102,91 @@ GameScene.prototype.draw = function () {
       imageMode(CENTER);
       this.renderFade();
 
-      if (this.paused) {
-        this.fade(1);
-
-        if (this.fadeColor[3] === 255) {
-          currentScene = new MenuScene();
-          currentScene.gamescene = this;
-          currentScene.episodeNumber = currentEpisode;
-        }
-      } else {
-        if (inputKeysJustDown[" "]) {
-          if (complete) {
-            this.fadeOut = true;
-          } else {
-            if (this.timeLeftTemp < this.timeLeft) {
-              var remaining = this.timeLeft - this.timeLeftTemp;
-              this.bonus += 500 * ceil(remaining);
-              this.player.addScore(500 * ceil(remaining));
-              this.timeLeftTemp = this.timeLeft;
-            }
-            if (this.killRatioTemp < this.killRatio) {
-              if (this.killRatio === 100) {
-                this.bonus += 10000;
-                this.player.addScore(10000);
-              }
-              this.killRatioTemp = this.killRatio;
-            }
-            if (this.secretRatioTemp < this.secretRatio) {
-              if (this.secretRatio === 100) {
-                this.bonus += 10000;
-                this.player.addScore(10000);
-              }
-              this.secretRatioTemp = this.secretRatio;
-            }
-            if (this.treasureRatioTemp < this.treasureRatio) {
-              if (this.treasureRatio === 100) {
-                this.bonus += 10000;
-                this.player.addScore(10000);
-              }
-              this.treasureRatioTemp = this.treasureRatio;
-            }
-          }
-        }
-
-        if (this.fadeOut) {
-          this.fade(1);
+      if (inputKeysJustDown[" "]) {
+        if (complete) {
+          this.fadeOut = true;
         } else {
-          if (this.fadeColor[0] > 0) {
-            this.fadeColor[0] = constrain(
-              this.fadeColor[0] - 3 * delta,
-              0,
-              255
-            );
-          } else {
-            this.fade(-1);
+          if (this.timeLeftTemp < this.timeLeft) {
+            var remaining = this.timeLeft - this.timeLeftTemp;
+            this.bonus += 500 * ceil(remaining);
+            this.player.addScore(500 * ceil(remaining));
+            this.timeLeftTemp = this.timeLeft;
+          }
+          if (this.killRatioTemp < this.killRatio) {
+            if (this.killRatio === 100) {
+              this.bonus += 10000;
+              this.player.addScore(10000);
+            }
+            this.killRatioTemp = this.killRatio;
+          }
+          if (this.secretRatioTemp < this.secretRatio) {
+            if (this.secretRatio === 100) {
+              this.bonus += 10000;
+              this.player.addScore(10000);
+            }
+            this.secretRatioTemp = this.secretRatio;
+          }
+          if (this.treasureRatioTemp < this.treasureRatio) {
+            if (this.treasureRatio === 100) {
+              this.bonus += 10000;
+              this.player.addScore(10000);
+            }
+            this.treasureRatioTemp = this.treasureRatio;
           }
         }
-        if (this.fadeColor[3] === 255) {
-          var nextScene = new GameScene(currentEpisode, currentLevel);
-          nextScene.init();
-          nextScene.player.ammo = this.player.ammo;
-          nextScene.player.lives = this.player.lives;
-          nextScene.player.health = this.player.health;
-          nextScene.player.weapons = this.player.weapons;
-          nextScene.player.currentWeapon = this.player.currentWeapon;
-          totalScore += this.player.score;
-          if (this.player.floor !== 10) {
-            totalSeconds += this.seconds;
-            averageKillRatio += this.killRatio;
-            averageSecretRatio += this.secretRatio;
-            averageTreasureRatio += this.treasureRatio;
-          }
+      }
 
-          saveCode = "";
-          saveCode += safeAlpha[currentLevel];
-          saveCode += safeAlpha[this.player.ammo];
-          saveCode += safeAlpha[this.player.lives];
-          saveCode += safeAlpha[this.player.health];
-          saveCode += safeAlpha[this.player.weapons];
-          saveCode += safeAlpha[this.player.currentWeapon];
-          var longDatas = [
-            averageKillRatio,
-            averageSecretRatio,
-            averageTreasureRatio,
-            totalScore,
-            totalSeconds,
-          ];
-          for (var i = 0; i < longDatas.length; i++) {
-            saveCode += " ";
-            var temp = longDatas[i];
-
-            if (temp === 0) {
-              saveCode += safeAlpha[temp];
-            }
-
-            while (temp > 0) {
-              var digit = temp % 10;
-              saveCode += safeAlpha[digit];
-              temp = floor(temp / 10);
-            }
-          }
-
-          currentScene = nextScene;
+      if (this.fadeOut) {
+        this.fade(1);
+      } else {
+        this.fade(-1);
+      }
+      if (this.fadeColor[3] === 255) {
+        var nextScene = new Scene(currentEpisode, currentLevel);
+        nextScene.init();
+        nextScene.player.ammo = this.player.ammo;
+        nextScene.player.lives = this.player.lives;
+        nextScene.player.health = this.player.health;
+        nextScene.player.weapons = this.player.weapons;
+        nextScene.player.currentWeapon = this.player.currentWeapon;
+        totalScore += this.player.score;
+        if (this.player.floor !== 10) {
+          totalSeconds += this.seconds;
+          averageKillRatio += this.killRatio;
+          averageSecretRatio += this.secretRatio;
+          averageTreasureRatio += this.treasureRatio;
         }
+
+        saveCode = "";
+        saveCode += safeAlpha[currentLevel];
+        saveCode += safeAlpha[this.player.ammo];
+        saveCode += safeAlpha[this.player.lives];
+        saveCode += safeAlpha[this.player.health];
+        saveCode += safeAlpha[this.player.weapons];
+        saveCode += safeAlpha[this.player.currentWeapon];
+        var longDatas = [
+          averageKillRatio,
+          averageSecretRatio,
+          averageTreasureRatio,
+          totalScore,
+          totalSeconds,
+        ];
+        for (var i = 0; i < longDatas.length; i++) {
+          saveCode += " ";
+          var temp = longDatas[i];
+
+          if (temp === 0) {
+            saveCode += safeAlpha[temp];
+          }
+
+          while (temp > 0) {
+            var digit = temp % 10;
+            saveCode += safeAlpha[digit];
+            temp = floor(temp / 10);
+          }
+        }
+
+        currentScene = nextScene;
       }
       break; //}
     case GAME_STATES.END_SCREEN: // {
@@ -5460,7 +5205,7 @@ GameScene.prototype.draw = function () {
           .padStart(2, "0") +
           ":" +
           (totalSeconds % 60).toString().padStart(2, "0"),
-        0
+        0,
       );
 
       displayText(196, 170, "AVERAGES", 0);
@@ -5474,7 +5219,7 @@ GameScene.prototype.draw = function () {
             .split("-")
             .join("  ") +
           "%",
-        0
+        0,
       );
       displayText(
         80,
@@ -5486,7 +5231,7 @@ GameScene.prototype.draw = function () {
             .split("-")
             .join("  ") +
           "%",
-        0
+        0,
       );
       displayText(
         16,
@@ -5498,28 +5243,14 @@ GameScene.prototype.draw = function () {
             .split("-")
             .join("  ") +
           "%",
-        0
+        0,
       );
 
       imageMode(CORNER);
       image(renders[hudOffset + 21], 16, 16, 176, 176);
       imageMode(CENTER);
       this.renderFade();
-      if (this.paused) {
-        this.fade(1);
-
-        if (this.fadeColor[3] === 255) {
-          currentScene = new MenuScene();
-          currentScene.gamescene = this;
-          currentScene.episodeNumber = currentEpisode;
-        }
-      } else {
-        if (this.fadeColor[0] > 0) {
-          this.fadeColor[0] = constrain(this.fadeColor[0] - 3 * delta, 0, 255);
-        } else {
-          this.fade(-1);
-        }
-      }
+      this.fade(-1);
       break; //}
     case GAME_STATES.TITLE:
       image(renders[titleScreenIndex], width / 2, height / 2);
@@ -5549,7 +5280,7 @@ GameScene.prototype.draw = function () {
           for (var i = 0; i < this.enemies.length; i++) {
             if (
               Object.keys(this.enemies[i].definition.frames).includes(
-                "deathcam"
+                "deathcam",
               )
             ) {
               this.deathcamEnemy = this.enemies[i];
@@ -5559,7 +5290,7 @@ GameScene.prototype.draw = function () {
           if (this.deathcamEnemy) {
             var move = new PVector(
               this.deathcamEnemy.pos.x - this.player.killPos.x,
-              this.deathcamEnemy.pos.y - this.player.killPos.y
+              this.deathcamEnemy.pos.y - this.player.killPos.y,
             );
             move.normalize();
             move.mult(-1.5);
@@ -5571,25 +5302,25 @@ GameScene.prototype.draw = function () {
                 this,
                 newPos.x + this.player.radius,
                 newPos.y,
-                this.player
+                this.player,
               ) +
                 checkTile(
                   this,
                   newPos.x - this.player.radius,
                   newPos.y,
-                  this.player
+                  this.player,
                 ) +
                 checkTile(
                   this,
                   newPos.x,
                   newPos.y + this.player.radius,
-                  this.player
+                  this.player,
                 ) +
                 checkTile(
                   this,
                   newPos.x,
                   newPos.y - this.player.radius,
-                  this.player
+                  this.player,
                 ) !==
               0
             );
@@ -5597,7 +5328,7 @@ GameScene.prototype.draw = function () {
             var targetAngle =
               -atan2(
                 this.player.pos.x - this.deathcamEnemy.pos.x,
-                this.player.pos.y - this.deathcamEnemy.pos.y
+                this.player.pos.y - this.deathcamEnemy.pos.y,
               ) - 90;
             this.player.angle = targetAngle;
             this.player.preUpdate();
@@ -5642,20 +5373,6 @@ GameScene.prototype.draw = function () {
         this.gamestate = GAME_STATES.ELEVATOR;
       }
       break;
-    case GAME_STATES.PAUSE: // {
-      raycast(this);
-      renderDecorations(this);
-      renderFrameBuffer(fizzlePixels);
-      displayHUD(this);
-      this.renderFade();
-
-      this.fade(1);
-
-      if (this.fadeColor[3] === 255) {
-        currentScene = new MenuScene();
-        currentScene.gamescene = this;
-      }
-      break; //}
   }
 
   if (invalidScreen) {
@@ -5664,444 +5381,13 @@ GameScene.prototype.draw = function () {
     text(
       "The raycast renderer needs a specific\n resolutionin order to run correctly.\nPlease follow the instructions\n in the console to play: \nAdd ?width=640 to the \nend of the url and reload.",
       20,
-      40
+      40,
     );
   } else if (inputKeysJustDown.l) {
     println('var saveCode = "' + saveCode + '";');
   }
   displayFPS();
   updateMouse();
-
-  if (
-    this.gamestate === GAME_STATES.PLAY ||
-    this.gamestate === GAME_STATES.END_SCREEN ||
-    this.gamestate === GAME_STATES.SCORE_SCREEN
-  ) {
-    if (
-      inputKeysJustDown.escape ||
-      (inputKeysJustDown[" "] && this.gamestate === GAME_STATES.END_SCREEN)
-    ) {
-      this.returnstate = this.gamestate;
-      this.episodeNumber = currentEpisode;
-      if (this.gamestate === GAME_STATES.PLAY) {
-        this.gamestate = GAME_STATES.PAUSE;
-      }
-      this.paused = true;
-    }
-  }
-};
-// }
-
-// Menu Scene {
-function MenuScene() {
-  this.fadeColor = [0, 0, 0, 255];
-  this.menustate = MENU_STATES.MAIN;
-  this.targetstate = MENU_STATES.MAIN;
-
-  this.options = {};
-  this.options[MENU_STATES.MAIN] = [
-    {
-      display: "New Game",
-      action: "gotoNewGame",
-    },
-    {
-      display: "Sound",
-    },
-    {
-      display: "Control",
-    },
-    {
-      display: "Load Game",
-      action: "loadSavedGame",
-    },
-    {
-      display: "Save Game",
-      action: "saveGame",
-    },
-    {
-      display: "Change View",
-    },
-    {
-      display: "Read This!",
-    },
-    {
-      display: "View Scores",
-    },
-    {
-      display: "Back to Game",
-      action: "backToGame",
-    },
-    {
-      display: "Quit",
-    },
-  ];
-  this.options[MENU_STATES.EPISODE] = [
-    {
-      display: "Episode 1\nEscape from Wolfenstein",
-      action: "gotoDifficulty",
-      init: "setE1",
-    },
-    {
-      display: "Episode 2\nOperation: Eisenfaust",
-      action: "gotoDifficulty",
-      init: "setE2",
-    },
-    {
-      display: "Episode 3\nDie, Fuhrer, Die",
-    },
-    {
-      display: "Episode 4\nA Dark Secret",
-    },
-    {
-      display: "Episode 5\nTrail of the Madman",
-    },
-    {
-      display: "Episode 6\nConfrontation",
-    },
-  ];
-  this.options[MENU_STATES.DIFFICULTY] = [
-    {
-      display: "Can I play, Daddy?",
-      action: "gotoStartGame",
-      init: "setD0",
-    },
-    {
-      display: "Don't hurt me.",
-      action: "gotoStartGame",
-      init: "setD1",
-    },
-    {
-      display: "Bring 'em on!",
-      action: "gotoStartGame",
-      init: "setD2",
-    },
-    {
-      display: "I am death incarnate!",
-      action: "gotoStartGame",
-      init: "setD3",
-    },
-  ];
-  this.options[MENU_STATES.START_GAME] = [
-    {
-      display: "",
-      init: "startGame",
-    },
-  ];
-  this.options[MENU_STATES.BACK_TO_GAME] = [
-    {
-      display: "",
-      init: "unpauseGame",
-    },
-  ];
-  this.previousStates = {};
-  this.previousStates[MENU_STATES.DIFFICULTY] = MENU_STATES.EPISODE;
-  this.previousStates[MENU_STATES.EPISODE] = MENU_STATES.MAIN;
-  this.currentOption = 0;
-  this.cursorTimer = 0;
-  this.cursor = 0;
-}
-
-MenuScene.prototype.fade = function (amount) {
-  this.fadeColor[3] = constrain(this.fadeColor[3] + amount * delta, 0, 255);
-};
-
-MenuScene.prototype.renderFade = function () {
-  fill(
-    this.fadeColor[0],
-    this.fadeColor[1],
-    this.fadeColor[2],
-    this.fadeColor[3]
-  );
-  rect(0, 0, width, height);
-};
-
-MenuScene.prototype.init = function () {};
-
-MenuScene.prototype.draw = function () {
-  background(136, 0, 0);
-  this.cursorTimer += delta;
-  if (this.cursor === 0 && this.cursorTimer > 1000) {
-    this.cursorTimer = 0;
-    this.cursor = 1;
-  } else if (this.cursor === 1 && this.cursorTimer > 8 * TICS_TO_MILLIS) {
-    this.cursor = 0;
-    this.cursorTimer = 0;
-  }
-  switch (this.menustate) {
-    case MENU_STATES.EPISODE:
-      image(renders[menuOffset + 1], width / 2, 368 + 16, 208, 32);
-      var x = 20 - 16;
-      var y = 46 - 8;
-      var w = 640 - 40 + 16;
-      var h = 400 - 46 * 2 + 16;
-      this.drawWindow(x + 8, y, w, h);
-      displayText(108, 4, "Which episode to play?", 4, 0.5);
-      for (var i = 0; i < this.options[this.menustate].length; i++) {
-        //var t = i === this.currentOption ? [195, 195, 195] : [142, 142, 142];
-        displayText(
-          x + 88 * 2 + 8,
-          y + 26 * i * 2 + 8,
-          this.options[this.menustate][i].display,
-          i === this.currentOption ? 2 : 3,
-          0.5
-        );
-      }
-      for (var i = 0; i < 6; i++) {
-        image(renders[menuOffset + 4 + i], 20 + 64 + 24 + 8, 64 + i * 52 + 8);
-      }
-
-      image(
-        renders[menuOffset + 2 + this.cursor],
-        x + 24 + 8,
-        y + this.currentOption * 52 + 16 + 8,
-        48,
-        32
-      );
-      break;
-    case MENU_STATES.DIFFICULTY:
-      image(renders[menuOffset + 1], width / 2, 368 + 16, 208, 32);
-      var x = 100 - 10;
-      var y = 200 - 20;
-      var w = 225 * 2;
-      var h = 26 * 4 + 30;
-      this.drawWindow(x + 8, y, w, h);
-      image(
-        renders[menuOffset + 2 + this.cursor],
-        x + 24 + 8,
-        y + this.currentOption * 26 + 16 + 8,
-        48,
-        32
-      );
-      displayText(143, 200 - 32 - 26, "How tough are you?", 4, 0.5);
-      for (var i = 0; i < this.options[this.menustate].length; i++) {
-        //var t = i === this.currentOption ? [195, 195, 195] : [142, 142, 142];
-        displayText(
-          x + 16 + 48,
-          y + 16 + 26 * i,
-          this.options[this.menustate][i].display,
-          i === this.currentOption ? 2 : 3,
-          0.5
-        );
-      }
-      image(
-        renders[menuOffset + 10 + this.currentOption],
-        100 + 370 + 24,
-        200 + 14 + 32 - 8,
-        48,
-        64
-      );
-      break;
-    default:
-      image(renders[menuOffset + 1], width / 2, 368 + 16, 208, 32);
-      fill(0, 0, 0);
-      rect(0, 20, 640, 48);
-      fill(100, 0, 0);
-      rect(0, 64, 638, 2);
-      image(renders[menuOffset], width / 2, 48, 304, 96);
-      var x = 152 - 16;
-      var y = 110 - 6;
-      var w = 356 + 16;
-      var h = 13 * 20 + 12;
-      this.drawWindow(x, y, w, h);
-      image(
-        renders[menuOffset + 2 + this.cursor],
-        x + 24 + 8,
-        y + this.currentOption * 26 + 16 + 4,
-        48,
-        32
-      );
-      for (var i = 0; i < this.options[this.menustate].length; i++) {
-        //var t = i === this.currentOption ? [195, 195, 195] : [142, 142, 142];
-        displayText(
-          x + 16 + 48,
-          y + 6 + 26 * i,
-          this.options[this.menustate][i].display,
-          i === this.currentOption ? 2 : 3,
-          0.5
-        );
-      }
-      break;
-  }
-  if (this.targetstate !== this.menustate) {
-    this.fadeColor[0] = (43 / 63) * 255;
-    this.fade(1);
-    if (this.fadeColor[3] === 255) {
-      this.menustate = this.targetstate;
-      this.currentOption = 0;
-      if (this.options[this.menustate][this.currentOption].init) {
-        this[this.options[this.menustate][this.currentOption].init]();
-      }
-    }
-  } else {
-    this.fade(-1);
-    if (inputKeysJustDown.up) {
-      this.currentOption--;
-      if (this.currentOption < 0) {
-        this.currentOption += this.options[this.menustate].length;
-      }
-      if (this.options[this.menustate][this.currentOption].init) {
-        this[this.options[this.menustate][this.currentOption].init]();
-      }
-    }
-    if (inputKeysJustDown.down) {
-      this.currentOption++;
-      if (this.currentOption >= this.options[this.menustate].length) {
-        this.currentOption -= this.options[this.menustate].length;
-      }
-      if (this.options[this.menustate][this.currentOption].init) {
-        this[this.options[this.menustate][this.currentOption].init]();
-      }
-    }
-    if (inputKeysJustDown["\n"] || inputKeysJustDown[" "]) {
-      if (this.options[this.menustate][this.currentOption].action) {
-        this[this.options[this.menustate][this.currentOption].action]();
-      }
-    }
-    if (inputKeysJustDown.escape) {
-      if (this.previousStates.hasOwnProperty(this.menustate)) {
-        this.targetstate = this.previousStates[this.menustate];
-      }
-    }
-  }
-  this.renderFade();
-};
-
-MenuScene.prototype.drawWindow = function (x, y, w, h) {
-  fill(
-    ceilingColorPallette[45][0],
-    ceilingColorPallette[45][1],
-    ceilingColorPallette[45][2]
-  );
-  rect(x, y, w, h);
-  fill(
-    ceilingColorPallette[43][0],
-    ceilingColorPallette[43][1],
-    ceilingColorPallette[43][2]
-  );
-  rect(x, y, w, 2);
-  rect(x, y, 2, h);
-  fill(
-    ceilingColorPallette[35][0],
-    ceilingColorPallette[35][1],
-    ceilingColorPallette[35][2]
-  );
-  rect(x, y + h - 2, w, 2);
-  rect(x + w - 2, y, 2, h);
-};
-
-MenuScene.prototype.saveGame = function () {
-  if (!this.gamescene) {
-    return;
-  }
-  scopeOut("window").localStorage.setItem("sv1", saveCode);
-  scopeOut("window").localStorage.setItem("ep1", this.gamescene.episodeNumber);
-  scopeOut("window").localStorage.setItem("d1", difficultyLevel);
-};
-
-MenuScene.prototype.gotoNewGame = function () {
-  this.targetstate = MENU_STATES.EPISODE;
-};
-
-MenuScene.prototype.loadSavedGame = function () {
-  var saved = scopeOut("window").localStorage.getItem("sv1");
-  if (saved) {
-    saveCode = saved;
-    currentEpisode = parseInt(scopeOut("window").localStorage.getItem("ep1"));
-    difficultyLevel = parseInt(scopeOut("window").localStorage.getItem("d1"));
-    this.targetstate = MENU_STATES.START_GAME;
-  }
-};
-
-MenuScene.prototype.gotoDifficulty = function () {
-  this.targetstate = MENU_STATES.DIFFICULTY;
-  this.gamescene = null;
-};
-MenuScene.prototype.gotoStartGame = function () {
-  this.targetstate = MENU_STATES.START_GAME;
-};
-MenuScene.prototype.backToGame = function () {
-  this.targetstate = MENU_STATES.BACK_TO_GAME;
-};
-
-MenuScene.prototype.setDiff = function (d) {
-  difficultyLevel = d;
-};
-
-MenuScene.prototype.setD0 = function () {
-  this.setDiff(0);
-};
-
-MenuScene.prototype.setD1 = function () {
-  this.setDiff(1);
-};
-
-MenuScene.prototype.setD2 = function () {
-  this.setDiff(2);
-};
-
-MenuScene.prototype.setD3 = function () {
-  this.setDiff(3);
-};
-
-MenuScene.prototype.startGame = function () {
-  var saveData = saveCode.split(" ");
-  currentLevel = safeAlpha.indexOf(saveCode[0]);
-  currentScene = new GameScene(currentEpisode, currentLevel);
-  currentScene.fadeColor = this.fadeColor;
-  currentScene.init();
-  currentScene.player.ammo = safeAlpha.indexOf(saveCode[1]);
-  currentScene.player.lives = safeAlpha.indexOf(saveCode[2]);
-  currentScene.player.health = safeAlpha.indexOf(saveCode[3]);
-  currentScene.player.weapons = safeAlpha.indexOf(saveCode[4]);
-  currentScene.player.currentWeapon = safeAlpha.indexOf(saveCode[5]);
-  for (var i = 1; i < saveData.length; i++) {
-    var data = saveData[i];
-    var num = "";
-    for (var c = data.length - 1; c >= 0; c--) {
-      num += safeAlpha.indexOf(data[c]);
-    }
-
-    num = parseInt(num, 10);
-
-    switch (i) {
-      case 1:
-        averageKillRatio = num;
-        break;
-      case 2:
-        averageSecretRatio = num;
-        break;
-      case 3:
-        averageTreasureRatio = num;
-        break;
-      case 4:
-        totalScore = num;
-        break;
-      case 5:
-        totalSeconds = num;
-        break;
-    }
-  }
-};
-
-MenuScene.prototype.unpauseGame = function () {
-  this.gamescene.paused = false;
-  currentEpisode = this.gamescene.episodeNumber;
-  this.gamescene.fadeColor = this.fadeColor;
-  if (this.gamescene.returnstate === GAME_STATES.PLAY) {
-    this.gamescene.gamestate = GAME_STATES.FADE_IN;
-  } else {
-    this.gamescene.gamestate = this.gamescene.returnstate;
-    this.gamescene.fade(-1);
-  }
-  this.gamescene.startTime = millis();
-  currentScene = this.gamescene;
-};
-
-MenuScene.prototype.setE1 = function () {
-  currentEpisode = 0;
-};
-MenuScene.prototype.setE2 = function () {
-  currentEpisode = 1;
 };
 // }
 
@@ -6121,7 +5407,43 @@ draw = function () {
     setupFizzleFade();
   }
   if (currentScene === null) {
-    currentScene = new MenuScene();
+    var saveData = saveCode.split(" ");
+    currentLevel = safeAlpha.indexOf(saveCode[0]);
+    currentLevel = 8; // TEMP
+    currentScene = new Scene(currentEpisode, currentLevel);
+    currentScene.init();
+    currentScene.player.ammo = safeAlpha.indexOf(saveCode[1]);
+    currentScene.player.lives = safeAlpha.indexOf(saveCode[2]);
+    currentScene.player.health = safeAlpha.indexOf(saveCode[3]);
+    currentScene.player.weapons = safeAlpha.indexOf(saveCode[4]);
+    currentScene.player.currentWeapon = safeAlpha.indexOf(saveCode[5]);
+    for (var i = 1; i < saveData.length; i++) {
+      var data = saveData[i];
+      var num = "";
+      for (var c = data.length - 1; c >= 0; c--) {
+        num += safeAlpha.indexOf(data[c]);
+      }
+
+      num = parseInt(num, 10);
+
+      switch (i) {
+        case 1:
+          averageKillRatio = num;
+          break;
+        case 2:
+          averageSecretRatio = num;
+          break;
+        case 3:
+          averageTreasureRatio = num;
+          break;
+        case 4:
+          totalScore = num;
+          break;
+        case 5:
+          totalSeconds = num;
+          break;
+      }
+    }
   }
 
   if (!currentScene.initialized) {
