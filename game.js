@@ -46,7 +46,7 @@ var DEBUG_FPS = false;
 var DECORATION_CLIPPING_DISTANCE = 0.2;
 // }
 // Control Settings {
-var useMouse = false;
+var useMouse = true;
 var mouseSensitivity = 0.04;
 // }
 // Save Code {
@@ -92,7 +92,7 @@ var MENU_STATES = {
 
 var difficultyLevel = DIFFICULTIES.CAN_I_PLAY_TOO_DADDY;
 
-var MOVE_SPEED = 0.003204345703125 * 1.41;
+var MOVE_SPEED = 0.003204345703125 * 1.41 * 2;
 var TURN_SPEED = 0.1;
 
 var DIRECTIONS = {
