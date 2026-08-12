@@ -47,7 +47,7 @@ var DECORATION_CLIPPING_DISTANCE = 0.2;
 // }
 // Control Settings {
 var useMouse = true;
-var mouseSensitivity = 0.04;
+var mouseSensitivity = 0.08;
 // }
 // Save Code {
 var saveCode = "!*%©$# ! ! ! ! !";
@@ -92,7 +92,7 @@ var MENU_STATES = {
 
 var difficultyLevel = DIFFICULTIES.CAN_I_PLAY_TOO_DADDY;
 
-var MOVE_SPEED = 0.003204345703125 * 1.41;
+var MOVE_SPEED = 0.003204345703125 * 1.41 * 2;
 var TURN_SPEED = 0.1;
 
 var DIRECTIONS = {
@@ -4377,7 +4377,7 @@ Player.prototype.move = function (scene) {
     inputHorizontal += (vMouseX - vMouseXOld) * mouseSensitivity;
   }
 
-  var speed = inputKeys.shift || useMouse ? MOVE_SPEED * 2 : MOVE_SPEED;
+  var speed = inputKeys.shift ? MOVE_SPEED * 2 : MOVE_SPEED;
   var moved = 0;
 
   var strafe = inputKeys.alt || rightClick;
@@ -4401,7 +4401,7 @@ Player.prototype.move = function (scene) {
       inputHorizontal *
       delta *
       TURN_SPEED *
-      (inputKeys.shift || useMouse ? 2 : 1);
+      (inputKeys.shift ? 2 : 1);
     this.angle = wrap(this.angle, 0, 360);
   }
 
