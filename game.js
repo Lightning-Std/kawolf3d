@@ -47,7 +47,7 @@ var DECORATION_CLIPPING_DISTANCE = 0.2;
 // }
 // Control Settings {
 var useMouse = true;
-var mouseSensitivity = 0.08;
+var mouseSensitivity = 0.03;
 // }
 // Save Code {
 var saveCode = "!*%©$# ! ! ! ! !";
@@ -4340,16 +4340,10 @@ Player.prototype.preUpdate = function () {
 };
 Player.prototype.move = function (scene) {
   var inputForward = 0;
-  if (inputKeys.up) {
+  if (inputKeys.up || inputKeys.w) {
     inputForward++;
   }
-  if (inputKeys.down) {
-    inputForward--;
-  }
-  if (inputKeys.w) {
-    inputForward++;
-  }
-  if (inputKeys.s) {
+  if (inputKeys.down || inputKeys.s) {
     inputForward--;
   }
   if (useMouse && inputForward === 0) {
@@ -4357,17 +4351,10 @@ Player.prototype.move = function (scene) {
   }
 
   var inputHorizontal = 0;
-  if (inputKeys.left) {
+  if (inputKeys.left || inputKeys.a) {
     inputHorizontal--;
   }
-  if (inputKeys.right) {
-    inputHorizontal++;
-  }
-
-  if (inputKeys.a) {
-    inputHorizontal--;
-  }
-  if (inputKeys.d) {
+  if (inputKeys.right || inputKeys.d) {
     inputHorizontal++;
   }
 
@@ -4383,18 +4370,18 @@ Player.prototype.move = function (scene) {
   var strafe = inputKeys.alt || rightClick;
 
   var moveX =
-    this.forward.x * constrain(inputForward * speed, -speed, speed) * delta;
+    this.forward.x * constrain(inputForward * speed, -MOVE_SPEED * 2, MOVE_SPEED * 2) * delta;
   var moveY =
-    this.forward.y * constrain(inputForward * speed, -speed, speed) * delta;
+    this.forward.y * constrain(inputForward * speed, -MOVE_SPEED * 2, MOVE_SPEED * 2) * delta;
 
   if (strafe) {
     moveX -=
       this.forward.y *
-      constrain(inputHorizontal * speed, -speed, speed) *
+      constrain(inputHorizontal * speed, -MOVE_SPEED * 2, MOVE_SPEED * 2) *
       delta;
     moveY +=
       this.forward.x *
-      constrain(inputHorizontal * speed, -speed, speed) *
+      constrain(inputHorizontal * speed, -MOVE_SPEED * 2, MOVE_SPEED * 2) *
       delta;
   } else {
     this.angle +=
