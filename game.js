@@ -1386,7 +1386,7 @@ function raycast(scene) {
     while (hit === 0) {
       if (worldMap[mapX][mapY] > 0) {
         hit = worldMap[mapX][mapY];
-        if (hit <= FLOOR_CODES || hit - FLOOR_CODES >= wallCount) {
+        if (hit <= FLOOR_CODES || hit - FLOOR_CODES > wallCount) {
           hit = 0;
         }
 
@@ -1683,7 +1683,7 @@ function spawnDecorations(scene) {
   for (var x = 0; x < scene.level.worldMap.length; x++) {
     for (var y = 0; y < scene.level.worldMap[x].length; y++) {
       if (
-        scene.level.worldMap[x][y] >= wallCount + FLOOR_CODES &&
+        scene.level.worldMap[x][y] > wallCount + FLOOR_CODES &&
         scene.level.worldMap[x][y] <= totalTiles + FLOOR_CODES
       ) {
         decorations.push(
@@ -2637,7 +2637,7 @@ Enemy.prototype.checkLineOfSight = function (scene) {
     sideDistY = (mapY + 1 - this.pos.y) * deltaDistY;
   }
 
-  while (hit <= FLOOR_CODES || hit >= FLOOR_CODES + wallCount) {
+  while (hit <= FLOOR_CODES || hit > FLOOR_CODES + wallCount) {
     if (sideDistX < sideDistY) {
       sideDistX += deltaDistX;
       mapX += stepX;
