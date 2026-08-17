@@ -51,6 +51,7 @@ var mouseSensitivity = 0.03;
 // }
 // Save Code {
 var saveCode = "!*%©$# ! ! ! ! !";
+// var saveCode = "*¨+©&% ($ ! ! !!%&$ )&";
 //}
 // Constants {
 
@@ -92,7 +93,7 @@ var MENU_STATES = {
 
 var difficultyLevel = DIFFICULTIES.CAN_I_PLAY_TOO_DADDY;
 
-var MOVE_SPEED = 0.003204345703125 * 1.41;
+var MOVE_SPEED = 0.00561;
 var TURN_SPEED = 0.1;
 
 var DIRECTIONS = {
@@ -137,6 +138,9 @@ var GOLD_KEY_ID = 80 + FLOOR_CODES;
 var HANS_CODE = 205 + FLOOR_CODES;
 var EXIT_CODE = 206 + FLOOR_CODES;
 var SCHABBS_CODE = 207 + FLOOR_CODES;
+var FAKE_HITLER_CODE = 209 + FLOOR_CODES;
+var HITLER_CODE = 208 + FLOOR_CODES;
+var GHOST_CODE = 210 + FLOOR_CODES;
 
 // }
 // Global {
@@ -1691,7 +1695,7 @@ function spawnDecorations(scene) {
         );
       }
       if (
-        scene.level.objectMap[x][y] >= wallCount + FLOOR_CODES &&
+        scene.level.objectMap[x][y] > wallCount + FLOOR_CODES &&
         scene.level.objectMap[x][y] <= totalTiles + FLOOR_CODES
       ) {
         var dec = new Decoration(scene.level.objectMap[x][y], x + 0.5, y + 0.5);
@@ -2202,6 +2206,49 @@ Enemy.prototype.schabbsChase = function (scene) {
   }
 };
 
+Enemy.prototype.fakeHitlerChase = function (scene) {
+  if (this.checkLineOfSight(scene)) {
+    if (random(0, 255) < 2) {
+      this.currentFrame = "shoot1";
+      this.timestamp = millis();
+      return;
+    }
+  }
+
+  if (
+    vectorEquals(this.targetPosition, this.pos) ||
+    (vectorEquals(this.forward, DIRECTIONS.NONE) && this.distanceToMove !== -1)
+  ) {
+    this.selectDodgeDirection(scene);
+    if (vectorEquals(this.forward, DIRECTIONS.NONE)) {
+      return;
+    }
+  }
+
+  var move = this.definition.speed * this.definition.chaseSpeed * delta;
+
+  while (move > 0) {
+    if (move < this.distanceToMove) {
+      this.move(scene, move);
+      break;
+    }
+    if (this.distanceToMove < 0) {
+      return;
+    }
+
+    this.pos.x = this.targetPosition.x;
+    this.pos.y = this.targetPosition.y;
+    this.tilePos.x = floor(this.pos.x);
+    this.tilePos.y = floor(this.pos.y);
+    move -= this.distanceToMove;
+
+    this.selectDodgeDirection(scene);
+    if (vectorEquals(this.forward, DIRECTIONS.NONE)) {
+      return;
+    }
+  }
+};
+
 Enemy.prototype.bite = function (scene) {
   var dx = abs(scene.player.pos.x - this.pos.x) - 1;
   if (dx <= 1 + scene.player.radius) {
@@ -2555,7 +2602,7 @@ Enemy.prototype.fire = function (scene) {
     }
   }
 };
-Enemy.prototype.schabbsThrow = function (scene) {
+Enemy.prototype.launchProjectile = function (scene) {
   var angle = scene.player.pos.get();
   angle.sub(this.pos);
   angle.normalize();
@@ -2566,7 +2613,7 @@ Enemy.prototype.schabbsThrow = function (scene) {
     angle.x,
     angle.y,
     enemyDefinitions[this.id + 1],
-    "needle1"
+    "proj1"
   );
   scene.decorations.push(needle);
 };
@@ -2580,7 +2627,10 @@ Enemy.prototype.projectile = function (scene) {
     abs(this.pos.x - scene.player.pos.x) < 0.75 &&
     abs(this.pos.y - scene.player.pos.y) < 0.75
   ) {
-    scene.player.damage(floor(random(0, 255) / 8) + 20, this, scene);
+    var damage;
+    if (this.id == 8) damage = floor(random(0, 255) / 8) + 20;
+    if (this.id == 10) damage = floor(random(0, 255) / 8);
+    scene.player.damage(damage, this, scene);
 
     var i = scene.decorations.indexOf(this);
     scene.decorations.splice(i, 1);
@@ -2701,7 +2751,7 @@ Enemy.prototype.clearGridSpace = function (scene) {
   var itemPosX = floor(this.pos.x);
   var itemPosY = floor(this.pos.y);
 
-  if (this.id !== 4 && this.id !== 7) {
+  if (this.id !== 4 && this.id !== 7 && this.id !== 9) {
     var pickup = new Decoration(
       dropItemId,
       floor(this.pos.x) + 0.5,
@@ -2716,6 +2766,20 @@ Enemy.prototype.clearGridSpace = function (scene) {
     door.blocked = true;
   }
 };
+Enemy.prototype.morphHitler = function (scene) {
+  var hitler = new Enemy(
+    this.id + 1,
+    this.pos.x,
+    this.pos.y,
+    this.forward.x,
+    this.forward.y,
+    enemyDefinitions[this.id + 1],
+    "chase1"
+  );
+  scene.enemies.push(hitler);
+  scene.decorations.push(hitler);
+  scene.enemyCount++;
+};
 
 Enemy.prototype.startDeathCam = function (scene) {
   if (scene.gamestate === GAME_STATES.DEATHCAM_2) {
@@ -2724,6 +2788,49 @@ Enemy.prototype.startDeathCam = function (scene) {
   } else {
     scene.gamestate = GAME_STATES.DEATHCAM_1;
     scene.startTime = -1;
+  }
+};
+
+Enemy.prototype.ghost = function (scene) {
+  if (
+    vectorEquals(this.targetPosition, this.pos) ||
+    (vectorEquals(this.forward, DIRECTIONS.NONE) && this.distanceToMove !== -1)
+  ) {
+    this.selectChaseDirection(scene);
+    if (vectorEquals(this.forward, DIRECTIONS.NONE)) {
+      return;
+    }
+  }
+
+  var move = this.definition.speed * delta;
+
+  while (move > 0) {
+    if (move < this.distanceToMove) {
+      this.move(scene, move);
+      break;
+    }
+    if (this.distanceToMove < 0) {
+      return;
+    }
+
+    this.pos.x = this.targetPosition.x;
+    this.pos.y = this.targetPosition.y;
+    this.tilePos.x = floor(this.pos.x);
+    this.tilePos.y = floor(this.pos.y);
+    move -= this.distanceToMove;
+
+    this.selectChaseDirection(scene);
+    if (vectorEquals(this.forward, DIRECTIONS.NONE)) {
+      return;
+    }
+  }
+  var dx = abs(scene.player.pos.x - this.pos.x) - this.definition.speed * delta;
+  if (dx <= 1 + scene.player.radius) {
+    var dy =
+      abs(scene.player.pos.y - this.pos.y) - this.definition.speed * delta;
+    if (dy <= 1 + scene.player.radius) {
+      scene.player.damage(0.02 * delta * TICS_TO_MILLIS, this, scene);
+    }
   }
 };
 
@@ -4060,7 +4167,7 @@ enemyDefinitions.push({
     throw2: {
       duration: 10 * TICS_TO_MILLIS,
       think: null,
-      action: "schabbsThrow",
+      action: "launchProjectile",
       next: "chase1",
       angle: false,
       frame: 5,
@@ -4127,40 +4234,662 @@ enemyDefinitions.push({
   notHittable: true,
   speed: 0.00875,
   frames: {
-    needle1: {
+    proj1: {
       duration: 6 * TICS_TO_MILLIS,
       think: "projectile",
       action: null,
-      next: "needle2",
+      next: "proj2",
       angle: false,
       frame: 0,
     },
-    needle2: {
+    proj2: {
       duration: 6 * TICS_TO_MILLIS,
       think: "projectile",
       action: null,
-      next: "needle3",
+      next: "proj3",
       angle: false,
       frame: 1,
     },
-    needle3: {
+    proj3: {
       duration: 6 * TICS_TO_MILLIS,
       think: "projectile",
       action: null,
-      next: "needle4",
+      next: "proj4",
       angle: false,
       frame: 2,
     },
-    needle4: {
+    proj4: {
       duration: 6 * TICS_TO_MILLIS,
       think: "projectile",
       action: null,
-      next: "needle1",
+      next: "proj1",
       angle: false,
       frame: 3,
     },
   },
-});
+}); // Needle
+enemyDefinitions.push({
+  health: [200, 300, 400, 500],
+  speed: 0.000547 * 1.41,
+  chaseSpeed: 3,
+  getReactionTime: function () {
+    return 0;
+  },
+  score: 2000,
+  frames: {
+    stand: {
+      duration: 0,
+      think: "stand",
+      action: null,
+      next: "stand",
+      angle: false,
+      frame: 0,
+    },
+    chase1: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: "fakeHitlerChase",
+      action: null,
+      next: "chase1s",
+      angle: false,
+      frame: 0,
+    },
+    chase1s: {
+      duration: 3 * TICS_TO_MILLIS,
+      think: null,
+      action: null,
+      next: "chase2",
+      angle: false,
+      frame: 0,
+    },
+    chase2: {
+      duration: 8 * TICS_TO_MILLIS,
+      think: "fakeHitlerChase",
+      action: null,
+      next: "chase3",
+      angle: false,
+      frame: 1,
+    },
+    chase3: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: "fakeHitlerChase",
+      action: null,
+      next: "chase3s",
+      angle: false,
+      frame: 2,
+    },
+    chase3s: {
+      duration: 3 * TICS_TO_MILLIS,
+      think: null,
+      action: null,
+      next: "chase4",
+      angle: false,
+      frame: 2,
+    },
+    chase4: {
+      duration: 8 * TICS_TO_MILLIS,
+      think: "fakeHitlerChase",
+      action: null,
+      next: "chase1",
+      angle: false,
+      frame: 1,
+    },
+    die1: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: null,
+      action: "clearGridSpace",
+      next: "die2",
+      angle: false,
+      frame: 4,
+    },
+    die2: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: null,
+      action: null,
+      next: "die3",
+      angle: false,
+      frame: 5,
+    },
+    die3: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: null,
+      action: null,
+      next: "die4",
+      angle: false,
+      frame: 6,
+    },
+    die4: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: null,
+      action: null,
+      next: "die5",
+      angle: false,
+      frame: 7,
+    },
+    die5: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: null,
+      action: null,
+      next: "die6",
+      angle: false,
+      frame: 8,
+    },
+    die6: {
+      duration: 0,
+      think: null,
+      action: null,
+      next: "die6",
+      angle: false,
+      frame: 9,
+    },
+    shoot1: {
+      duration: 8 * TICS_TO_MILLIS,
+      think: null,
+      action: "launchProjectile",
+      next: "shoot2",
+      angle: false,
+      frame: 3,
+    },
+    shoot2: {
+      duration: 8 * TICS_TO_MILLIS,
+      think: null,
+      action: "launchProjectile",
+      next: "shoot3",
+      angle: false,
+      frame: 3,
+    },
+    shoot3: {
+      duration: 8 * TICS_TO_MILLIS,
+      think: null,
+      action: "launchProjectile",
+      next: "shoot4",
+      angle: false,
+      frame: 3,
+    },
+    shoot4: {
+      duration: 8 * TICS_TO_MILLIS,
+      think: null,
+      action: "launchProjectile",
+      next: "shoot5",
+      angle: false,
+      frame: 3,
+    },
+    shoot5: {
+      duration: 8 * TICS_TO_MILLIS,
+      think: null,
+      action: "launchProjectile",
+      next: "shoot6",
+      angle: false,
+      frame: 3,
+    },
+    shoot6: {
+      duration: 8 * TICS_TO_MILLIS,
+      think: null,
+      action: "launchProjectile",
+      next: "shoot7",
+      angle: false,
+      frame: 3,
+    },
+    shoot7: {
+      duration: 8 * TICS_TO_MILLIS,
+      think: null,
+      action: "launchProjectile",
+      next: "shoot8",
+      angle: false,
+      frame: 3,
+    },
+    shoot8: {
+      duration: 8 * TICS_TO_MILLIS,
+      think: null,
+      action: "launchProjectile",
+      next: "shoot9",
+      angle: false,
+      frame: 3,
+    },
+    shoot9: {
+      duration: 8 * TICS_TO_MILLIS,
+      think: null,
+      action: null,
+      next: "chase1",
+      angle: false,
+      frame: 3,
+    },
+  },
+}); // Fake Hitler
+enemyDefinitions.push({
+  notHittable: true,
+  speed: 0.00492,
+  frames: {
+    proj1: {
+      duration: 6 * TICS_TO_MILLIS,
+      think: "projectile",
+      action: null,
+      next: "proj2",
+      angle: false,
+      frame: 0,
+    },
+    proj2: {
+      duration: 6 * TICS_TO_MILLIS,
+      think: "projectile",
+      action: null,
+      next: "proj1",
+      angle: false,
+      frame: 1,
+    },
+  },
+}); // Fireball
+enemyDefinitions.push({
+  health: [800, 950, 1050, 1200],
+  speed: 0.000547 * 1.41,
+  chaseSpeed: 3,
+  getReactionTime: function () {
+    return 0;
+  },
+  score: 5000,
+  frames: {
+    stand: {
+      duration: 0,
+      think: "stand",
+      action: null,
+      next: "stand",
+      angle: false,
+      frame: 0,
+    },
+    chase1: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: "chase",
+      action: null,
+      next: "chase1s",
+      angle: false,
+      frame: 0,
+    },
+    chase1s: {
+      duration: 6 * TICS_TO_MILLIS,
+      think: null,
+      action: null,
+      next: "chase2",
+      angle: false,
+      frame: 0,
+    },
+    chase2: {
+      duration: 8 * TICS_TO_MILLIS,
+      think: "chase",
+      action: null,
+      next: "chase3",
+      angle: false,
+      frame: 1,
+    },
+    chase3: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: "chase",
+      action: null,
+      next: "chase3s",
+      angle: false,
+      frame: 2,
+    },
+    chase3s: {
+      duration: 6 * TICS_TO_MILLIS,
+      think: null,
+      action: null,
+      next: "chase4",
+      angle: false,
+      frame: 2,
+    },
+    chase4: {
+      duration: 8 * TICS_TO_MILLIS,
+      think: "chase",
+      action: null,
+      next: "chase1",
+      angle: false,
+      frame: 3,
+    },
+    shoot1: {
+      duration: 30 * TICS_TO_MILLIS,
+      think: null,
+      action: null,
+      next: "shoot2",
+      angle: false,
+      frame: 4,
+    },
+    shoot2: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: null,
+      action: "fire",
+      next: "shoot3",
+      angle: false,
+      frame: 5,
+    },
+    shoot3: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: null,
+      action: "fire",
+      next: "shoot4",
+      angle: false,
+      frame: 6,
+    },
+    shoot4: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: null,
+      action: "fire",
+      next: "shoot5",
+      angle: false,
+      frame: 5,
+    },
+    shoot5: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: null,
+      action: "fire",
+      next: "shoot6",
+      angle: false,
+      frame: 6,
+    },
+    shoot6: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: null,
+      action: "fire",
+      next: "chase1",
+      angle: false,
+      frame: 5,
+    },
+    die1: {
+      duration: 15 * TICS_TO_MILLIS,
+      think: null,
+      action: "clearGridSpace",
+      next: "die2",
+      angle: false,
+      frame: 7,
+    },
+    die2: {
+      duration: 15 * TICS_TO_MILLIS,
+      think: null,
+      action: null,
+      next: "die3",
+      angle: false,
+      frame: 8,
+    },
+    die3: {
+      duration: 15 * TICS_TO_MILLIS,
+      think: null,
+      action: "morphHitler",
+      next: "die4",
+      angle: false,
+      frame: 9,
+    },
+    die4: {
+      duration: 0,
+      think: null,
+      action: null,
+      next: "die4",
+      angle: false,
+      frame: 10,
+    },
+  },
+}); // Meccha Hitler
+enemyDefinitions.push({
+  health: [800, 950, 1050, 1200],
+  speed: 0.000547 * 1.41,
+  chaseSpeed: 5,
+  getReactionTime: function () {
+    return 0;
+  },
+  score: 5000,
+  frames: {
+    chase1: {
+      duration: 6 * TICS_TO_MILLIS,
+      think: "chase",
+      action: null,
+      next: "chase1s",
+      angle: false,
+      frame: 0,
+    },
+    chase1s: {
+      duration: 4 * TICS_TO_MILLIS,
+      think: null,
+      action: null,
+      next: "chase2",
+      angle: false,
+      frame: 0,
+    },
+    chase2: {
+      duration: 2 * TICS_TO_MILLIS,
+      think: "chase",
+      action: null,
+      next: "chase3",
+      angle: false,
+      frame: 1,
+    },
+    chase3: {
+      duration: 6 * TICS_TO_MILLIS,
+      think: "chase",
+      action: null,
+      next: "chase3s",
+      angle: false,
+      frame: 2,
+    },
+    chase3s: {
+      duration: 4 * TICS_TO_MILLIS,
+      think: null,
+      action: null,
+      next: "chase4",
+      angle: false,
+      frame: 2,
+    },
+    chase4: {
+      duration: 2 * TICS_TO_MILLIS,
+      think: "chase",
+      action: null,
+      next: "chase1",
+      angle: false,
+      frame: 3,
+    },
+    shoot1: {
+      duration: 30 * TICS_TO_MILLIS,
+      think: null,
+      action: null,
+      next: "shoot2",
+      angle: false,
+      frame: 4,
+    },
+    shoot2: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: null,
+      action: "fire",
+      next: "shoot3",
+      angle: false,
+      frame: 5,
+    },
+    shoot3: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: null,
+      action: "fire",
+      next: "shoot4",
+      angle: false,
+      frame: 6,
+    },
+    shoot4: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: null,
+      action: "fire",
+      next: "shoot5",
+      angle: false,
+      frame: 5,
+    },
+    shoot5: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: null,
+      action: "fire",
+      next: "shoot6",
+      angle: false,
+      frame: 6,
+    },
+    shoot6: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: null,
+      action: "fire",
+      next: "chase1",
+      angle: false,
+      frame: 5,
+    },
+    die1: {
+      duration: 1 * TICS_TO_MILLIS,
+      think: null,
+      action: "clearGridSpace",
+      next: "die2",
+      angle: false,
+      frame: 0,
+    },
+    die2: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: null,
+      action: null,
+      next: "die3",
+      angle: false,
+      frame: 0,
+    },
+    die3: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: null,
+      action: null,
+      next: "die4",
+      angle: false,
+      frame: 7,
+    },
+    die4: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: null,
+      action: null,
+      next: "die5",
+      angle: false,
+      frame: 8,
+    },
+    die5: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: null,
+      action: null,
+      next: "die6",
+      angle: false,
+      frame: 9,
+    },
+    die6: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: null,
+      action: null,
+      next: "die7",
+      angle: false,
+      frame: 10,
+    },
+    die7: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: null,
+      action: null,
+      next: "die8",
+      angle: false,
+      frame: 11,
+    },
+    die8: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: null,
+      action: null,
+      next: "die9",
+      angle: false,
+      frame: 12,
+    },
+    die9: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: null,
+      action: null,
+      next: "die10",
+      angle: false,
+      frame: 13,
+    },
+    die10: {
+      duration: 20 * TICS_TO_MILLIS,
+      think: null,
+      action: "startDeathCam",
+      next: "die10",
+      angle: false,
+      frame: 14,
+    },
+    deathcam: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: null,
+      action: null,
+      next: "die1",
+      angle: false,
+      frame: 0,
+    },
+  },
+}); // Hitler
+enemyDefinitions.push({
+  speed: 0.001709 * 1.41,
+  notHittable: true,
+  chaseSpeed: 1,
+  frames: {
+    red1: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: "ghost",
+      action: null,
+      next: "red2",
+      angle: false,
+      frame: 0,
+    },
+    red2: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: "ghost",
+      action: null,
+      next: "red1",
+      angle: false,
+      frame: 1,
+    },
+    pink1: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: "ghost",
+      action: null,
+      next: "pink2",
+      angle: false,
+      frame: 2,
+    },
+    pink2: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: "ghost",
+      action: null,
+      next: "pink1",
+      angle: false,
+      frame: 3,
+    },
+    yellow1: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: "ghost",
+      action: null,
+      next: "yellow2",
+      angle: false,
+      frame: 4,
+    },
+    yellow2: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: "ghost",
+      action: null,
+      next: "yellow1",
+      angle: false,
+      frame: 5,
+    },
+    blue1: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: "ghost",
+      action: null,
+      next: "blue2",
+      angle: false,
+      frame: 6,
+    },
+    blue2: {
+      duration: 10 * TICS_TO_MILLIS,
+      think: "ghost",
+      action: null,
+      next: "blue1",
+      angle: false,
+      frame: 7,
+    },
+  },
+}); // Ghosts
 
 function spawnEnemies(scene) {
   var out = [];
@@ -4238,6 +4967,33 @@ function spawnEnemies(scene) {
         }
         if (scene.level.objectMap[x][y] === SCHABBS_CODE) {
           enemyId = 7;
+        }
+        if (scene.level.objectMap[x][y] === FAKE_HITLER_CODE) {
+          enemyId = 9;
+        }
+        if (scene.level.objectMap[x][y] === HITLER_CODE) {
+          enemyId = 11;
+        }
+        if (
+          scene.level.objectMap[x][y] >= GHOST_CODE &&
+          scene.level.objectMap[x][y] < GHOST_CODE + 4
+        ) {
+          enemyId = 13;
+          dead++;
+          switch (scene.level.objectMap[x][y] - GHOST_CODE) {
+            case 0:
+              enemyFrame = "red1";
+              break;
+            case 1:
+              enemyFrame = "yellow1";
+              break;
+            case 2:
+              enemyFrame = "pink1";
+              break;
+            case 3:
+              enemyFrame = "blue1";
+              break;
+          }
         }
 
         if (enemyId !== -1) {
@@ -4365,14 +5121,19 @@ Player.prototype.move = function (scene) {
   }
 
   var speed = inputKeys.shift ? MOVE_SPEED * 2 : MOVE_SPEED;
+  if (inputForward < 0) speed *= 2 / 3;
   var moved = 0;
 
   var strafe = inputKeys.alt || rightClick;
 
   var moveX =
-    this.forward.x * constrain(inputForward * speed, -MOVE_SPEED * 2, MOVE_SPEED * 2) * delta;
+    this.forward.x *
+    constrain(inputForward * speed, -MOVE_SPEED * 2, MOVE_SPEED * 2) *
+    delta;
   var moveY =
-    this.forward.y * constrain(inputForward * speed, -MOVE_SPEED * 2, MOVE_SPEED * 2) * delta;
+    this.forward.y *
+    constrain(inputForward * speed, -MOVE_SPEED * 2, MOVE_SPEED * 2) *
+    delta;
 
   if (strafe) {
     moveX -=
@@ -4385,10 +5146,7 @@ Player.prototype.move = function (scene) {
       delta;
   } else {
     this.angle +=
-      inputHorizontal *
-      delta *
-      TURN_SPEED *
-      (inputKeys.shift ? 2 : 1);
+      inputHorizontal * delta * TURN_SPEED * (inputKeys.shift ? 2 : 1);
     this.angle = wrap(this.angle, 0, 360);
   }
 
@@ -5735,6 +6493,8 @@ function MenuScene() {
     },
     {
       display: "Episode 3\nDie, Fuhrer, Die",
+      action: "gotoDifficulty",
+      init: "setE3",
     },
     {
       display: "Episode 4\nA Dark Secret",
@@ -6089,6 +6849,9 @@ MenuScene.prototype.setE1 = function () {
 };
 MenuScene.prototype.setE2 = function () {
   currentEpisode = 1;
+};
+MenuScene.prototype.setE3 = function () {
+  currentEpisode = 2;
 };
 // }
 
