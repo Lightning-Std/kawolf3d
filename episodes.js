@@ -229,6 +229,7 @@ var episodes = [
       [0, "??:??"],
       [0, "??:??"],
     ],
+    secretExitLevel: 7,
   },
 ];
 

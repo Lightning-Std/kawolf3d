@@ -1123,7 +1123,7 @@ function tryElevator(scene) {
     ) {
       currentLevel = 9;
     } else if (currentLevel === 9) {
-      currentLevel = 1;
+      currentLevel = this.episode.secretExitLevel || 1;
     } else {
       currentLevel++;
     }
