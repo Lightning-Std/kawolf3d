@@ -2703,7 +2703,10 @@ Enemy.prototype.checkLineOfSight = function (scene) {
     // Doors {
     if (DOOR_CODES.includes(hit)) {
       var doorOpenAmount = scene.doors[mapX + "-" + mapY].openAmount;
-      if (side === 1) {
+      if (doorOpenAmount > 0) {
+        hit = 0;
+      }
+      /*if (side === 1) {
         if (sideDistY - deltaDistY * 0.5 >= sideDistX) {
           hit = 0;
         } else {
@@ -2727,7 +2730,7 @@ Enemy.prototype.checkLineOfSight = function (scene) {
             hit = 0;
           }
         }
-      }
+      }*/
     }
     //}
 
