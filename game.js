@@ -2829,7 +2829,7 @@ Enemy.prototype.ghost = function (scene) {
     var dy =
       abs(scene.player.pos.y - this.pos.y) - this.definition.speed * delta;
     if (dy <= 1 + scene.player.radius) {
-      scene.player.damage(0.02 * delta * TICS_TO_MILLIS, this, scene);
+      scene.player.damage(floor((2 * delta) / TICS_TO_MILLIS), this, scene);
     }
   }
 };
